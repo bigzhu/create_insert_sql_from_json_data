@@ -2,6 +2,7 @@ import psycopg2
 import json
 import datetime
 
+
 def sqlify(obj):
     """
     converts `obj` to its proper SQL version
@@ -31,7 +32,8 @@ def sqlify(obj):
     elif datetime and isinstance(obj, datetime.datetime):
         return repr(obj.isoformat())
     else:
-        if isinstance(obj, str): obj = obj.encode('utf8')
+        if isinstance(obj, str):
+            obj = obj.encode('utf8')
         return repr(obj)
 
 
@@ -52,6 +54,8 @@ def safestr(obj, encoding='utf-8'):
         return itertools.imap(safestr, obj)
     else:
         return str(obj)
+
+
 class SQLLiteral:
     """
     Protects a string from `sqlquote`.
@@ -61,11 +65,14 @@ class SQLLiteral:
         >>> sqlquote(SQLLiteral('NOW()'))
         <sql: 'NOW()'>
     """
+
     def __init__(self, v):
         self.v = v
 
     def __repr__(self):
         return self.v
+
+
 class UnknownParamstyle(Exception):
     """
     raised for unsupported db paramstyles
@@ -73,6 +80,8 @@ class UnknownParamstyle(Exception):
     (currently supported: qmark, numeric, format, pyformat)
     """
     pass
+
+
 class SQLParam(object):
     """
     Parameter in SQLQuery.
@@ -114,7 +123,10 @@ class SQLParam(object):
     def __repr__(self):
         return '<param: %s>' % repr(self.value)
 
-sqlparam =  SQLParam
+
+sqlparam = SQLParam
+
+
 class SQLQuery(object):
     """
     You can pass this sort of thing as a clause in any db function.
@@ -272,26 +284,53 @@ class SQLQuery(object):
     def __repr__(self):
         return '<sql: %s>' % repr(str(self))
 
+
 def test():
     from jsonschema2db import JSONSchemaToPostgres
     schema = json.load(open('result.json'))
     translator = JSONSchemaToPostgres(
         schema,
         postgres_schema='kafka_test',
-        #item_col_name='order_id',
-        #item_col_type='string',
+        # item_col_name='order_id',
+        # item_col_type='string',
     )
-    
-    con = psycopg2.connect('user=kafka_test host=127.0.0.1 dbname=kafka_test password=kafka_test')
+
+    con = psycopg2.connect(
+        'user=kafka_test host=127.0.0.1 dbname=kafka_test password=kafka_test')
     translator.create_tables(con)
 
-def createInsertSQL(table_name,**values):
+
+def createInsertSQL(table_name, **values):
     def q(x): return "(" + x + ")"
     _keys = SQLQuery.join(values.keys(), ', ')
     _values = SQLQuery.join([sqlparam(v) for v in values.values()], ', ')
-    sql_query = "INSERT INTO %s " % table_name + q(_keys) + ' VALUES ' + q(_values)
+    sql_query = "INSERT INTO %s " % table_name + \
+        q(_keys) + ' VALUES ' + q(_values)
     return sql_query
 
+
+def createMultipleInsertSQL(table_name, values):
+    keys = sorted(values[0].keys())
+    # @@ make sure all keys are valid
+
+    for v in values:
+        # make sure keys are sorted, keep compare correct
+        if sorted(v.keys()) != keys:
+            raise ValueError('Not all rows have the same keys')
+
+    sql_query = SQLQuery('INSERT INTO %s (%s) VALUES ' %
+                         (table_name, ', '.join(keys)))
+
+    for i, row in enumerate(values):
+        if i != 0:
+            sql_query.append(", ")
+        SQLQuery.join([SQLParam(row[k]) for k in keys], sep=", ",
+                      target=sql_query, prefix="(", suffix=")")
+    return sql_query
+
+
 if __name__ == "__main__":
-    o = json.load(open('20200105_182621258_0.json'))
-    print(createInsertSQL("good_table", **o))
+    #o = json.load(open('20200105_182621258_0.json'))
+    #print(createInsertSQL("good_table", **o))
+    o = json.load(open('test.json'))
+    print(createMultipleInsertSQL("good_table", o))
