@@ -25,16 +25,12 @@ def sqlify(obj):
         return "'f'"
     elif isinstance(obj, int):
         return str(obj)
-    elif isinstance(obj, dict):
-        return repr(json.dumps(obj))
-    elif isinstance(obj, list):
-        return repr(json.dumps(obj))
     elif datetime and isinstance(obj, datetime.datetime):
         return repr(obj.isoformat())
+    elif isinstance(obj, str):
+        return repr(obj.encode('utf8'))
     else:
-        if isinstance(obj, str):
-            obj = obj.encode('utf8')
-        return repr(obj)
+        return repr(json.dumps(obj))
 
 
 def safestr(obj, encoding='utf-8'):
@@ -330,7 +326,6 @@ def createMultipleInsertSQL(table_name, values):
 
 
 if __name__ == "__main__":
-    #o = json.load(open('20200105_182621258_0.json'))
-    #print(createInsertSQL("good_table", **o))
     o = json.load(open('test.json'))
+    print(createInsertSQL("good_table", **o[0]))
     print(createMultipleInsertSQL("good_table", o))
