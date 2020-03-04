@@ -9,7 +9,7 @@ pip install psycopg2-binary
 python create.py
 ```
 
-## type map
+## Type map
 
 First level data will map to insert into SQL use the same element name.
 
@@ -38,3 +38,9 @@ if the sub-element is object/array or other will dump to JSON string, you can us
 If has multiple data need insert you can put in `[]`, then call `createMultipleInsertSQL` create multiple insert SQL.
 
 **Must make sure all the element has same attr**
+
+## Note
+
+most codes come from [web.py](https://github.com/webpy/webpy) old version, I miss the days when I used [web.py](https://github.com/webpy/webpy)
+
+I just split min relation code into this script and make it support python3.
